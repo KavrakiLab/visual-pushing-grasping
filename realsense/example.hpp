@@ -59,33 +59,34 @@ inline void draw_text(int x, int y, const char * text)
 class texture
 {
 public:
-    void render(const rs2::video_frame& frame, const rect& r)
+    void render(const rs::frame& frame, const rect& r)
     {
         upload(frame);
         show(r.adjust_ratio({ float(width), float(height) }));
     }
 
-    void upload(const rs2::video_frame& frame)
+    void upload(const rs::frame& frame)
     {
-        if (!frame) return;
+        // No way to check using this version of API.
+        //if (!frame) return;
 
         if (!gl_handle)
             glGenTextures(1, &gl_handle);
         GLenum err = glGetError();
 
-        auto format = frame.get_profile().format();
+        auto format = frame.get_format();
         width = frame.get_width();
         height = frame.get_height();
-        stream = frame.get_profile().stream_type();
+        stream = frame.get_stream_type();
 
         glBindTexture(GL_TEXTURE_2D, gl_handle);
 
         switch (format)
         {
-        case RS2_FORMAT_RGB8:
+        case rs::format::rgb8:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.get_data());
             break;
-        case RS2_FORMAT_Y8:
+        case rs::format::y8:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame.get_data());
             break;
         default:
@@ -118,13 +119,13 @@ public:
         glDisable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        draw_text((int)r.x + 15, (int)r.y + 20, rs2_stream_to_string(stream));
+        draw_text((int)r.x + 15, (int)r.y + 20, rs_stream_to_string((rs_stream)stream));
     }
 private:
     GLuint gl_handle = 0;
     int width = 0;
     int height = 0;
-    rs2_stream stream = RS2_STREAM_ANY;
+    rs::stream stream = rs::stream::depth; 
 };
 
 class window
