@@ -132,8 +132,6 @@ int main(int argc, char * argv[]) try {
     dev.enable_stream(rs::stream::depth, stream_width, stream_height, rs::format::z16, stream_fps);
     dev.enable_stream(rs::stream::color, stream_width, stream_height, rs::format::rgb8, stream_fps);
 
-    // Declare two textures on the GPU, one for color and one for depth
-    texture depth_image, color_image;
 
     // Declare depth colorizer for pretty visualization of depth data
     // Note(brycew): used for visualization, useful but not in v1 of lib.
@@ -192,6 +190,8 @@ int main(int argc, char * argv[]) try {
 
     if (argc == 2 && std::string(argv[1]) == "window")
     {
+        // Declare two textures on the GPU, one for color and one for depth
+        texture depth_image, color_image;
         window app(640, 480, "RealSense Stream");
         while(app) // Application still alive?
         {

@@ -107,22 +107,22 @@ class Robot(object):
             self.home_joint_config = [-(180.0/360.0)*2*np.pi, -(84.2/360.0)*2*np.pi, (112.8/360.0)*2*np.pi, -(119.7/360.0)*2*np.pi, -(90.0/360.0)*2*np.pi, 0.0]
 
             # Default joint speed configuration
-            self.joint_acc = 8 # Safe: 1.4
-            self.joint_vel = 3 # Safe: 1.05
+            self.joint_acc = 1.4
+            self.joint_vel = 1.05
 
             # Joint tolerance for blocking calls
             self.joint_tolerance = 0.01
 
             # Default tool speed configuration
-            self.tool_acc = 1.2 # Safe: 0.5
-            self.tool_vel = 0.25 # Safe: 0.2
+            self.tool_acc = 0.5
+            self.tool_vel = 0.2
 
             # Tool pose tolerance for blocking calls
             self.tool_pose_tolerance = [0.002,0.002,0.002,0.01,0.01,0.01]
 
             # Move robot to home pose
             self.close_gripper()
-            self.go_home()
+            #self.go_home()
 
             # Fetch RGB-D data from RealSense camera
             from real.camera import Camera
@@ -412,16 +412,18 @@ class Robot(object):
             gripper_fully_closed = True
 
         else:
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
-            tcp_command = "set_digital_out(8,True)\n"
-            self.tcp_socket.send(str.encode(tcp_command))
-            self.tcp_socket.close()
-            if async:
-                gripper_fully_closed = True
-            else:
-                time.sleep(1.5)
-                gripper_fully_closed =  self.check_grasp()
+            # TODO(brycew): Actually close the robotiq
+            gripper_fully_closed = True
+            #self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+            #tcp_command = "set_digital_out(8,True)\n"
+            #self.tcp_socket.send(str.encode(tcp_command))
+            #self.tcp_socket.close()
+            #if async:
+            #    gripper_fully_closed = True
+            #else:
+            #    time.sleep(1.5)
+            #    gripper_fully_closed =  self.check_grasp()
 
         return gripper_fully_closed
 
@@ -438,13 +440,14 @@ class Robot(object):
                 sim_ret, gripper_joint_position = vrep.simxGetJointPosition(self.sim_client, RG2_gripper_handle, vrep.simx_opmode_blocking)
 
         else:
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
-            tcp_command = "set_digital_out(8,False)\n"
-            self.tcp_socket.send(str.encode(tcp_command))
-            self.tcp_socket.close()
-            if not async:
-                time.sleep(1.5)
+            pass
+            #self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+            #tcp_command = "set_digital_out(8,False)\n"
+            #self.tcp_socket.send(str.encode(tcp_command))
+            #self.tcp_socket.close()
+            #if not async:
+            #    time.sleep(1.5)
 
 
     def get_state(self):
