@@ -59,13 +59,13 @@ inline void draw_text(int x, int y, const char * text)
 class texture
 {
 public:
-    void render(const rs::frame& frame, const rect& r)
+    void render(const rs::float3 * points, const rs::intrinsics depth_intrin, const rect& r)
     {
-        upload(frame);
+        upload(points, depth_intrin);
         show(r.adjust_ratio({ float(width), float(height) }));
     }
 
-    void upload(const rs::frame& frame)
+    void upload(const rs::float3 *points, const rs::intrinsics depth_intrin)
     {
         // No way to check using this version of API.
         //if (!frame) return;
@@ -74,24 +74,23 @@ public:
             glGenTextures(1, &gl_handle);
         GLenum err = glGetError();
 
-        auto format = frame.get_format();
-        width = frame.get_width();
-        height = frame.get_height();
-        stream = frame.get_stream_type();
+        //auto format = frame.get_format();
+        width = depth_intrin.width;
+        height = depth_intrin.height;
 
         glBindTexture(GL_TEXTURE_2D, gl_handle);
 
-        switch (format)
-        {
-        case rs::format::rgb8:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.get_data());
-            break;
-        case rs::format::y8:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame.get_data());
-            break;
-        default:
-            throw std::runtime_error("The requested format is not supported by this demo!");
-        }
+        //switch (format)
+        //{
+        //case rs::format::rgb8:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, points);
+        //    break;
+        //case rs::format::y8:
+        //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame.get_data());
+        //    break;
+        //default:
+        //    throw std::runtime_error("The requested format is not supported by this demo!");
+        //}
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

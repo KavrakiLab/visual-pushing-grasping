@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <iomanip>
 #include <stdio.h>
+#include <memory>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -107,9 +108,9 @@ void Server::update_buffer(const unsigned char * data, int offset, unsigned long
 //-------------------------------------------------------
 //-------------------------------------------------------
 
-// Configure all streams to run at 1280x720 resolution at 30 frames per second
-const int stream_width = 1280;
-const int stream_height = 720;
+// Configure all streams to run at 640x480 resolution at 30 frames per second
+const int stream_width = 640;
+const int stream_height = 480;
 const int stream_fps = 30;
 const int depth_disparity_shift = 50;
 
@@ -118,9 +119,6 @@ int main(int argc, char * argv[]) try {
 
     Server realsense_server(50000);
     realsense_server.init_listener_thread();
-
-    // Create a simple OpenGL window for rendering:
-    window app(2560, 720, "RealSense Stream");
 
     // Check if RealSense device is connected
     rs::context ctx;
@@ -131,14 +129,15 @@ int main(int argc, char * argv[]) try {
 
     // Configure streams
     rs::device &dev = *ctx.get_device(0);
-    dev.enable_stream(rs::stream::depth_aligned_to_color, stream_width, stream_height, rs::format::z16, stream_fps);
+    dev.enable_stream(rs::stream::depth, stream_width, stream_height, rs::format::z16, stream_fps);
     dev.enable_stream(rs::stream::color, stream_width, stream_height, rs::format::rgb8, stream_fps);
 
     // Declare two textures on the GPU, one for color and one for depth
     texture depth_image, color_image;
 
     // Declare depth colorizer for pretty visualization of depth data
-    rs::colorizer color_map;
+    // Note(brycew): used for visualization, useful but not in v1 of lib.
+    // rs::colorizer color_map;
 
     // Start streaming
     dev.start();
@@ -172,8 +171,8 @@ int main(int argc, char * argv[]) try {
 
     // Enable auto white balancing for color sensor
     rs_option wb_option_type = static_cast<rs_option>(11);
-    if (color_sensor.supports(wb_option_type))
-        color_sensor.set_option(wb_option_type, 1);
+    if (dev.supports_option((rs::option)wb_option_type))
+        dev.set_option((rs::option)wb_option_type, 1);
 
     // Capture 30 frames to give autoexposure, etc. a chance to settle
     for (int i = 0; i < 30; ++i) dev.wait_for_frames();
@@ -186,12 +185,51 @@ int main(int argc, char * argv[]) try {
                                      0.0f, 0.0f, 1.0f};
 
     // Get depth scale for converting depth pixel values into distances in meters
-    float depth_scale = depth_sensor.as<rs::depth_sensor>().get_depth_scale();
+    float depth_scale = dev.get_depth_scale(); //depth_sensor.as<rs::depth_sensor>().get_depth_scale();
 
     // Create alignment object (for aligning depth frame to color frame)
     //rs::align align(rs_stream::RS_STREAM_COLOR);
 
-    while(app) // Application still alive?
+    if (argc == 2 && std::string(argv[1]) == "window")
+    {
+        window app(640, 480, "RealSense Stream");
+        while(app) // Application still alive?
+        {
+            // Wait for next set of frames from the camera
+            if(dev.is_streaming())
+                dev.wait_for_frames();
+    
+            //rs::frame color = data.get_color_frame(); 
+            // rs2::depth_frame raw_depth = data.get_depth_frame();       
+    
+            auto points = reinterpret_cast<const rs::float3 *>(dev.get_frame_data(rs::stream::points));
+            auto aligned_depth = reinterpret_cast<const uint16_t *>(dev.get_frame_data(rs::stream::depth_aligned_to_color));
+    
+            // Find and colorize the depth data
+            //rs::frame depth_colorized = color_map(aligned_depth);  
+    
+            // Since we initialize with z16 format type, there should be 16 bits per frame.
+            int depth_size = dev.get_stream_width(rs::stream::depth_aligned_to_color)*dev.get_stream_height(rs::stream::depth_aligned_to_color)* 16; // dev.get_stream_bbp();
+            realsense_server.update_buffer((unsigned char*)aligned_depth, 10*4, depth_size);
+    
+            // Since we initialize with rgb8, there should be 8 bits per frame.
+            int color_size = dev.get_stream_width(rs::stream::color)*dev.get_stream_height(rs::stream::color)* 8; //dev.get_bytes_per_pixel();
+            realsense_server.update_buffer((unsigned char*)points, 10*4 + depth_size, color_size);
+    
+            // Send camera intrinsics and depth scale
+            realsense_server.update_buffer((unsigned char*)color_intrinsics_arr, 0, 9*4);
+            realsense_server.update_buffer((unsigned char*)&depth_scale, 9*4, 4);
+    
+            const rs::intrinsics depth_intrin = dev.get_stream_intrinsics(rs::stream::depth);
+            // Render depth on to the first half of the screen and color on to the second
+            //depth_image.render(depth_colorized, { 0, 0, app->width() / 2, app->height() });
+            color_image.render(points, depth_intrin, { app.width() / 2, 0, app.width() / 2, app.height() });
+        }
+        return EXIT_SUCCESS;
+    }
+
+    // Otherwise, ignore this.
+    while(true) // Run until ctrl-c 
     {
         // Wait for next set of frames from the camera
         if(dev.is_streaming())
@@ -206,19 +244,17 @@ int main(int argc, char * argv[]) try {
         // Find and colorize the depth data
         //rs::frame depth_colorized = color_map(aligned_depth);  
 
-        int depth_size = dev.get_stream_width(rs::stream::depth_aligned_to_color)*dev.get_stream_height(rs::stream::depth_aligned_to_color)*dev.get_stream_bbp();
+        // Since we initialize with z16 format type, there should be 16 bits per frame.
+        int depth_size = dev.get_stream_width(rs::stream::depth_aligned_to_color)*dev.get_stream_height(rs::stream::depth_aligned_to_color)* 16; // dev.get_stream_bbp();
         realsense_server.update_buffer((unsigned char*)aligned_depth, 10*4, depth_size);
 
-        int color_size = dev.get_stream_width(rs::stream::color)*dev.get_stream_height(rs::stream::color)*dev.get_bytes_per_pixel();
+        // Since we initialize with rgb8, there should be 8 bits per frame.
+        int color_size = dev.get_stream_width(rs::stream::color)*dev.get_stream_height(rs::stream::color)* 8; //dev.get_bytes_per_pixel();
         realsense_server.update_buffer((unsigned char*)points, 10*4 + depth_size, color_size);
 
         // Send camera intrinsics and depth scale
         realsense_server.update_buffer((unsigned char*)color_intrinsics_arr, 0, 9*4);
         realsense_server.update_buffer((unsigned char*)&depth_scale, 9*4, 4);
-
-        // Render depth on to the first half of the screen and color on to the second
-        //depth_image.render(depth_colorized, { 0, 0, app.width() / 2, app.height() });
-        color_image.render(color, { app.width() / 2, 0, app.width() / 2, app.height() });
     }
 
     return EXIT_SUCCESS;
