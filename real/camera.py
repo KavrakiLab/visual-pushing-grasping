@@ -13,9 +13,10 @@ class Camera(object):
     def __init__(self):
 
         # Data options (change me)
-        self.im_height = 720
-        self.im_width = 1280
-        self.tcp_host_ip = '127.0.0.1'
+        self.im_height = 480
+        self.im_width = 640
+        #self.tcp_host_ip = '127.0.0.1'
+        self.tcp_host_ip = '10.78.20.22'
         self.tcp_port = 50000
         self.buffer_size = 4098 # 4 KiB
 
@@ -38,6 +39,7 @@ class Camera(object):
         #     depth image, self.im_width x self.im_height uint16, number of bytes: self.im_width x self.im_height x 2
         #     color image, self.im_width x self.im_height x 3 uint8, number of bytes: self.im_width x self.im_height x 3
         data = b''
+        #print(10*4 + self.im_height*self.im_width*5)
         while len(data) < (10*4 + self.im_height*self.im_width*5):
             data += self.tcp_socket.recv(self.buffer_size)
 
