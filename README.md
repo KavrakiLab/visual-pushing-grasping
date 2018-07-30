@@ -9,6 +9,26 @@ Visual Pushing and Grasping (VPG) is a method for training robotic agents to lea
 
 This repository provides PyTorch code for training and testing VPG policies with deep reinforcement learning in both simulation and real-world settings on a UR5 robot arm. This is the reference implementation for the paper:
 
+### Kavrakilab Setup:
+
+1. Realsense gets plugged into styx.
+2. On styx, run ./realsense-exe
+3. On the realtime machine, run calibrate.py.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Learning Synergies between Pushing and Grasping with Self-supervised Deep Reinforcement Learning
 
 [PDF](https://arxiv.org/pdf/1803.09956.pdf) | [Webpage & Video Results](http://vpg.cs.princeton.edu/)
