@@ -340,9 +340,14 @@ class Robot(object):
         robot_message_type = data_bytes[4]
         # 16 is a ROBOT_STATE message.
         sub_type = data_bytes[9]
-        for i in range(len(data_bytes)):
-            print(data_bytes[i])
-        assert(robot_message_type == 16)
+        if robot_message_type == 20:
+            print('Probably a version message. Gonna keep reading.')
+            more_data = self.tcp_socket.recv(2048)
+            stuff = self.parse_tcp_state_data(more_data, subpackage)
+            print('Going back up')
+            return stuff
+        else:
+            assert(robot_message_type == 16)
         byte_idx = 5
 
         # Parse sub-packages
@@ -574,6 +579,7 @@ class Robot(object):
         self.tcp_socket.send(str.encode(tcp_command))
 
         # Block until robot reaches home state
+        # Given that move_joints is the first thing to be called, just ignore the first return of parse tcp.
         state_data = self.tcp_socket.recv(2048)
         actual_joint_positions = self.parse_tcp_state_data(state_data, 'joint_data')
         while not all([np.abs(actual_joint_positions[j] - joint_configuration[j]) < self.joint_tolerance for j in range(6)]):
