@@ -421,16 +421,18 @@ class Robot(object):
             gripper_fully_closed = True
 
         else:
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
-            tcp_command = "set_digital_out(8,True)\n"
-            self.tcp_socket.send(str.encode(tcp_command))
-            self.tcp_socket.close()
-            if async:
-                gripper_fully_closed = True
-            else:
-                time.sleep(1.5)
-                gripper_fully_closed =  self.check_grasp()
+            # TODO(brycew): actually close the robotiq
+            gripper_fully_closed = True
+            #self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+            #tcp_command = "set_digital_out(8,True)\n"
+            #self.tcp_socket.send(str.encode(tcp_command))
+            #self.tcp_socket.close()
+            #if async:
+            #    gripper_fully_closed = True
+            #else:
+            #    time.sleep(1.5)
+            #    gripper_fully_closed =  self.check_grasp()
 
         return gripper_fully_closed
 
@@ -447,13 +449,13 @@ class Robot(object):
                 sim_ret, gripper_joint_position = vrep.simxGetJointPosition(self.sim_client, RG2_gripper_handle, vrep.simx_opmode_blocking)
 
         else:
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
-            tcp_command = "set_digital_out(8,False)\n"
-            self.tcp_socket.send(str.encode(tcp_command))
-            self.tcp_socket.close()
-            if not async:
-                time.sleep(1.5)
+            #self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
+            #tcp_command = "set_digital_out(8,False)\n"
+            #self.tcp_socket.send(str.encode(tcp_command))
+            #self.tcp_socket.close()
+            #if not async:
+            #    time.sleep(1.5)
 
 
     def get_state(self):

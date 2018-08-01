@@ -15,7 +15,8 @@ class Camera(object):
         # Data options (change me)
         self.im_height = 720
         self.im_width = 1280
-        self.tcp_host_ip = '127.0.0.1'
+        #self.tcp_host_ip ='127.0.0.1'
+        self.tcp_host_ip = '10.78.20.22'
         self.tcp_port = 50000
         self.buffer_size = 4098 # 4 KiB
 
