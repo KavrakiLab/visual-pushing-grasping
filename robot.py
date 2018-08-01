@@ -104,25 +104,25 @@ class Robot(object):
 
             # Default home joint configuration
             # self.home_joint_config = [-np.pi, -np.pi/2, np.pi/2, -np.pi/2, -np.pi/2, 0]
-            self.home_joint_config = [-(180.0/360.0)*2*np.pi, -(84.2/360.0)*2*np.pi, (112.8/360.0)*2*np.pi, -(119.7/360.0)*2*np.pi, -(90.0/360.0)*2*np.pi, 0.0]
+            self.home_joint_config = [-(2.68/360.0)*2*np.pi, -(81.10/360.0)*2*np.pi, (88.43/360.0)*2*np.pi, -(98.28/360.0)*2*np.pi, -(88.97/360.0)*2*np.pi, 0.0]
 
             # Default joint speed configuration
-            self.joint_acc = 1.4
-            self.joint_vel = 1.05
+            self.joint_acc = 0.2 # 1.4 suggested safe
+            self.joint_vel = 0.2 # 1.05 suggested safe
 
             # Joint tolerance for blocking calls
             self.joint_tolerance = 0.01
 
             # Default tool speed configuration
-            self.tool_acc = 0.5
-            self.tool_vel = 0.2
+            self.tool_acc = 0.2 # 0.5 suggested safe
+            self.tool_vel = 0.1 # 0.2 suggested safe
 
             # Tool pose tolerance for blocking calls
             self.tool_pose_tolerance = [0.002,0.002,0.002,0.01,0.01,0.01]
 
             # Move robot to home pose
             self.close_gripper()
-            #self.go_home()
+            self.go_home()
 
             # Fetch RGB-D data from RealSense camera
             from real.camera import Camera
@@ -338,7 +338,16 @@ class Robot(object):
         data_bytes.extend(state_data)
         data_length = struct.unpack("!i", data_bytes[0:4])[0];
         robot_message_type = data_bytes[4]
-        assert(robot_message_type == 16)
+        # 16 is a ROBOT_STATE message.
+        sub_type = data_bytes[9]
+        if robot_message_type == 20:
+            print('Probably a version message. Gonna keep reading.')
+            more_data = self.tcp_socket.recv(2048)
+            stuff = self.parse_tcp_state_data(more_data, subpackage)
+            print('Going back up')
+            return stuff
+        else:
+            assert(robot_message_type == 16)
         byte_idx = 5
 
         # Parse sub-packages
@@ -570,6 +579,7 @@ class Robot(object):
         self.tcp_socket.send(str.encode(tcp_command))
 
         # Block until robot reaches home state
+        # Given that move_joints is the first thing to be called, just ignore the first return of parse tcp.
         state_data = self.tcp_socket.recv(2048)
         actual_joint_positions = self.parse_tcp_state_data(state_data, 'joint_data')
         while not all([np.abs(actual_joint_positions[j] - joint_configuration[j]) < self.joint_tolerance for j in range(6)]):
