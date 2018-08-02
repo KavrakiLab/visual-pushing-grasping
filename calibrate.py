@@ -60,7 +60,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     time.sleep(1)
     
     # Find checkerboard center
-    checkerboard_size = (4,4)
+    checkerboard_size = (3,3)
     refine_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     camera_color_img, camera_depth_img = robot.get_camera_data()
     bgr_color_data = cv2.cvtColor(camera_color_img, cv2.COLOR_RGB2BGR)
@@ -68,7 +68,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     checkerboard_found, corners = cv2.findChessboardCorners(gray_data, checkerboard_size, None, cv2.CALIB_CB_ADAPTIVE_THRESH)
     if checkerboard_found:
         print('Checkerboard found!')
-        corners_refined = cv2.cornerSubPix(gray_data, corners, (4,4), (-1,-1), refine_criteria)
+        corners_refined = cv2.cornerSubPix(gray_data, corners, (3,3), (-1,-1), refine_criteria)
 
         # Get observed checkerboard center 3D point in camera space
         checkerboard_pix = np.round(corners_refined[4,0,:]).astype(int)
