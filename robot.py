@@ -449,6 +449,7 @@ class Robot(object):
                 sim_ret, gripper_joint_position = vrep.simxGetJointPosition(self.sim_client, RG2_gripper_handle, vrep.simx_opmode_blocking)
 
         else:
+            return
             #self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             #self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
             #tcp_command = "set_digital_out(8,False)\n"
@@ -789,6 +790,7 @@ class Robot(object):
             tool_rotation_angle = (heightmap_rotation_angle % np.pi) - np.pi/2
 
             # Adjust pushing point to be on tip of finger
+            # TODO(brycew): change this to be the tip of the robotiq finger.
             position[2] = position[2] + 0.026
 
             # Compute pushing direction

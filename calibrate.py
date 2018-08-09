@@ -16,7 +16,7 @@ tcp_host_ip = '192.168.0.19' # IP and port to robot arm as TCP client (UR5)
 tcp_port = 30002
 rtc_host_ip = '192.168.0.19' # IP and port to robot arm as real-time client (UR5)
 rtc_port = 30003
-workspace_limits = np.asarray([[-0.6, -0.55], [-0.05, 0.05], [0.25, 0.35]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+workspace_limits = np.asarray([[-0.6, -0.50], [-0.05, 0.05], [0.20, 0.30]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 calib_grid_step = 0.05
 checkerboard_offset_from_tool = [0,-0.13,0.02]
 tool_orientation = [np.pi/2,0,0] # [0,-2.22,2.22] # [2.22,2.22,0]
@@ -67,6 +67,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
     gray_data = cv2.cvtColor(bgr_color_data, cv2.COLOR_RGB2GRAY)
     checkerboard_found, corners = cv2.findChessboardCorners(gray_data, checkerboard_size, None, cv2.CALIB_CB_ADAPTIVE_THRESH)
     if checkerboard_found:
+        print('Checkerboard found!')
         corners_refined = cv2.cornerSubPix(gray_data, corners, (3,3), (-1,-1), refine_criteria)
 
         # Get observed checkerboard center 3D point in camera space
@@ -75,6 +76,7 @@ for calib_pt_idx in range(num_calib_grid_pts):
         checkerboard_x = np.multiply(checkerboard_pix[0]-robot.cam_intrinsics[0][2],checkerboard_z/robot.cam_intrinsics[0][0])
         checkerboard_y = np.multiply(checkerboard_pix[1]-robot.cam_intrinsics[1][2],checkerboard_z/robot.cam_intrinsics[1][1])
         if checkerboard_z == 0:
+            print("Can't tell z, skipping")
             continue
 
         # Save calibration point and observed checkerboard center
@@ -91,6 +93,9 @@ for calib_pt_idx in range(num_calib_grid_pts):
         cv2.imwrite('%06d.png' % len(measured_pts), vis)
         cv2.imshow('Calibration',vis)
         cv2.waitKey(10)
+    else:
+        print('No checkerboard found. :( Saving gray_data in /tmp')
+        cv2.imwrite('bad{}.png'.format(time.time()), gray_data)
 
 # Move robot back to home pose
 robot.go_home()
