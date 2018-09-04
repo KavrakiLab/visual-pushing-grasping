@@ -16,9 +16,9 @@ tcp_host_ip = '192.168.0.19' # IP and port to robot arm as TCP client (UR5)
 tcp_port = 30002
 rtc_host_ip = '192.168.0.19' # IP and port to robot arm as real-time client (UR5)
 rtc_port = 30003
-workspace_limits = np.asarray([[-0.6, -0.50], [-0.05, 0.05], [0.20, 0.30]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+workspace_limits = np.asarray([[-0.70, -0.45], [-0.4, 0.0], [0.15, 0.30]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 calib_grid_step = 0.05
-checkerboard_offset_from_tool = [0,-0.13,0.02]
+checkerboard_offset_from_tool = [0,0.0425,-0.19]
 tool_orientation = [np.pi/2,0,0] # [0,-2.22,2.22] # [2.22,2.22,0]
 # ---------------------------------------------
 
@@ -46,8 +46,8 @@ robot = Robot(False, None, None, workspace_limits,
 robot.open_gripper()
 
 # Slow down robot
-robot.joint_acc = 0.2 # 1.4  # suggested safe
-robot.joint_vel = 0.2 # 1.05 # suggested safe
+robot.joint_acc = 0.4 # 1.4  # suggested safe
+robot.joint_vel = 0.4 # 1.05 # suggested safe
 
 # Make robot gripper point upwards
 #robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
@@ -77,6 +77,8 @@ for calib_pt_idx in range(num_calib_grid_pts):
         checkerboard_y = np.multiply(checkerboard_pix[1]-robot.cam_intrinsics[1][2],checkerboard_z/robot.cam_intrinsics[1][1])
         if checkerboard_z == 0:
             print("Can't tell z, skipping")
+            print("Checkboard_pix: " + str(checkerboard_pix))
+            print("Depth image length: " + str(len(camera_depth_img)))
             continue
 
         # Save calibration point and observed checkerboard center

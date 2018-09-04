@@ -871,7 +871,7 @@ class Robot(object):
             position[1] = min(max(position[1], workspace_limits[1][0]), workspace_limits[1][1])
             position[2] = max(position[2] + 0.005, workspace_limits[2][0] + 0.005) # Add buffer to surface
 
-            home_position = [0.49,0.11,0.03]
+            home_position = [-0.55, 0, 0.375]#[0.49,0.11,0.03]
 
             # Attempt push
             self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -14,7 +14,7 @@ tcp_host_ip = '192.168.0.19' # IP and port to robot arm as TCP client (UR5)
 tcp_port = 30002
 rtc_host_ip = '192.168.0.19' # IP and port to robot arm as real-time client (UR5)
 rtc_port = 30003
-workspace_limits = np.asarray([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+workspace_limits = np.asarray([[-0.6, -0.50], [-0.05, 0.05], [0.15, 0.30]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 tool_orientation = [2.22,-2.22,0]
 # ---------------------------------------------
 
@@ -26,8 +26,8 @@ robot = Robot(False, None, None, workspace_limits,
 #robot.open_gripper()
 
 # Slow down robot
-robot.joint_acc = 1.4
-robot.joint_vel = 1.05
+robot.joint_acc = 0.3#1.4
+robot.joint_vel = 0.3#1.05
 
 # Callback function for clicking on OpenCV window
 click_point_pix = ()
@@ -50,10 +50,12 @@ def mouseclick_callback(event, x, y, flags, param):
         # camera2robot = np.linalg.inv(robot.cam_pose)
         camera2robot = robot.cam_pose
         target_position = np.dot(camera2robot[0:3,0:3],click_point) + camera2robot[0:3,3:]
-
+#	target_position = [-0.55, 0.0, 0.25]
         target_position = target_position[0:3,0]
         print(target_position)
-        #robot.move_to(target_position, tool_orientation)
+
+	
+#        robot.move_to(target_position, tool_orientation)
 
 
 # Show color and depth frames
