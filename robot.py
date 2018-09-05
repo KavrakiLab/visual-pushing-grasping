@@ -104,7 +104,7 @@ class Robot(object):
 
             # Default home joint configuration
             # self.home_joint_config = [-np.pi, -np.pi/2, np.pi/2, -np.pi/2, -np.pi/2, 0]
-            self.home_joint_config = [-(2.68/360.0)*2*np.pi, -(81.10/360.0)*2*np.pi, (88.43/360.0)*2*np.pi, -(98.28/360.0)*2*np.pi, -(88.97/360.0)*2*np.pi, 0.0]
+            self.home_joint_config = [-(2.68/360.0)*2*np.pi, -(81.10/360.0)*2*np.pi, (78.43/360.0)*2*np.pi, -(98.28/360.0)*2*np.pi, -(88.97/360.0)*2*np.pi, 0.0]
 
             # Default joint speed configuration
             self.joint_acc = 0.2 # 1.4 suggested safe
@@ -341,11 +341,8 @@ class Robot(object):
         # 16 is a ROBOT_STATE message.
         sub_type = data_bytes[9]
         if robot_message_type == 20:
-            print('Probably a version message. Gonna keep reading.')
-            more_data = self.tcp_socket.recv(2048)
-            stuff = self.parse_tcp_state_data(more_data, subpackage)
-            print('Going back up')
-            return stuff
+            print("Things still don't work, don't reread inside parse.")
+            exit()
         else:
             assert(robot_message_type == 16)
         byte_idx = 5
@@ -460,10 +457,22 @@ class Robot(object):
 
 
     def get_state(self):
-
         self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
         state_data = self.tcp_socket.recv(2048)
+        data_bytes = bytearray()
+        data_bytes.extend(state_data)
+        data_length = struct.unpack("!i", data_bytes[0:4])[0];
+        robot_message_type = data_bytes[4]
+        # 16 is a ROBOT_STATE message.
+        while robot_message_type == 20:
+            print('Probably a version message. Gonna keep reading.')
+            state_data = self.tcp_socket.recv(2048)
+            data_bytes = bytearray()
+            data_bytes.extend(state_data)
+            data_length = struct.unpack("!i", data_bytes[0:4])[0];
+            robot_message_type = data_bytes[4]
+        print("Found state_data!")
         self.tcp_socket.close()
         return state_data
 
@@ -491,14 +500,16 @@ class Robot(object):
             self.tcp_socket.connect((self.tcp_host_ip, self.tcp_port))
             tcp_command = "movel(p[%f,%f,%f,%f,%f,%f],a=%f,v=%f,t=0,r=0)\n" % (tool_position[0],tool_position[1],tool_position[2],tool_orientation[0],tool_orientation[1],tool_orientation[2],self.tool_acc,self.tool_vel)
             self.tcp_socket.send(str.encode(tcp_command))
+            self.tcp_socket.close()
 
             # Block until robot reaches target tool position
-            tcp_state_data = self.tcp_socket.recv(2048)
+            tcp_state_data = self.get_state()
+
             actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
             while not all([np.abs(actual_tool_pose[j] - tool_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]): 
                 # [min(np.abs(actual_tool_pose[j] - tool_orientation[j-3]), np.abs(np.abs(actual_tool_pose[j] - tool_orientation[j-3]) - np.pi*2)) < self.tool_pose_tolerance[j] for j in range(3,6)]
                 # print([np.abs(actual_tool_pose[j] - tool_position[j]) for j in range(3)] + [min(np.abs(actual_tool_pose[j] - tool_orientation[j-3]), np.abs(np.abs(actual_tool_pose[j] - tool_orientation[j-3]) - np.pi*2)) for j in range(3,6)])
-                tcp_state_data = self.tcp_socket.recv(2048)
+                tcp_state_data = self.get_state()
                 prev_actual_tool_pose = np.asarray(actual_tool_pose).copy()
                 actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
                 time.sleep(0.01)
@@ -513,7 +524,7 @@ class Robot(object):
         self.rtc_socket.connect((self.rtc_host_ip, self.rtc_port))
 
         # Read actual tool position
-        tcp_state_data = self.tcp_socket.recv(2048)
+        tcp_state_data = self.get_state()
         actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
         execute_success = True
 
@@ -536,11 +547,11 @@ class Robot(object):
             self.tcp_socket.send(str.encode(tcp_command))
 
             time_start = time.time()
-            tcp_state_data = self.tcp_socket.recv(2048)
+            tcp_state_data = self.get_state()
             actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
             while not all([np.abs(actual_tool_pose[j] - increment_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
                 # print([np.abs(actual_tool_pose[j] - increment_position[j]) for j in range(3)])
-                tcp_state_data = self.tcp_socket.recv(2048)
+                tcp_state_data = self.get_state()
                 actual_tool_pose = self.parse_tcp_state_data(tcp_state_data, 'cartesian_info')
                 time_snapshot = time.time()
                 if time_snapshot - time_start > 1:
@@ -580,10 +591,10 @@ class Robot(object):
 
         # Block until robot reaches home state
         # Given that move_joints is the first thing to be called, just ignore the first return of parse tcp.
-        state_data = self.tcp_socket.recv(2048)
+        state_data = self.get_state()
         actual_joint_positions = self.parse_tcp_state_data(state_data, 'joint_data')
         while not all([np.abs(actual_joint_positions[j] - joint_configuration[j]) < self.joint_tolerance for j in range(6)]):
-            state_data = self.tcp_socket.recv(2048)
+            state_data = self.get_state()
             actual_joint_positions = self.parse_tcp_state_data(state_data, 'joint_data')
             time.sleep(0.01)
 
@@ -600,6 +611,7 @@ class Robot(object):
 
         state_data = self.get_state()
         tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+
         return tool_analog_input2 > 0.26
 
 
@@ -701,11 +713,13 @@ class Robot(object):
             # Block until robot reaches target tool position and gripper fingers have stopped moving
             state_data = self.get_state()
             tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+
             timeout_t0 = time.time()
             while True:
                 state_data = self.get_state()
                 new_tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
                 actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
+                self.tcp_socket.close()
                 timeout_t1 = time.time()
                 if (tool_analog_input2 < 3.7 and (abs(new_tool_analog_input2 - tool_analog_input2) < 0.01) and all([np.abs(actual_tool_pose[j] - position[j]) < self.tool_pose_tolerance[j] for j in range(3)])) or (timeout_t1 - timeout_t0) > 5:
                     break
@@ -747,6 +761,7 @@ class Robot(object):
                     state_data = self.get_state()
                     tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
                     actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
+
                     measurements.append(tool_analog_input2)
                     if abs(actual_tool_pose[1] - bin_position[1]) < 0.2 or all([np.abs(actual_tool_pose[j] - home_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
                         break
